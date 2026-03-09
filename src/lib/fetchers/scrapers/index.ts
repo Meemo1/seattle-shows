@@ -1,6 +1,5 @@
 import { RawEvent } from "../../types";
 import { scrapeSeattleFolkloreSociety } from "./folklore-society";
-import { scrapeFremontAbbey } from "./fremont-abbey";
 
 export interface ScraperEntry {
   name: string;
@@ -9,5 +8,5 @@ export interface ScraperEntry {
 
 export const scrapers: ScraperEntry[] = [
   { name: "scraper:folklore-society", fn: scrapeSeattleFolkloreSociety },
-  { name: "scraper:fremont-abbey", fn: scrapeFremontAbbey },
+  // Fremont Abbey events page only shows old events — disabled for now
 ];

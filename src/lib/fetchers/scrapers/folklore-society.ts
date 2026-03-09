@@ -10,51 +10,38 @@ export async function scrapeSeattleFolkloreSociety(): Promise<RawEvent[]> {
   const $ = cheerio.load(html);
   const events: RawEvent[] = [];
 
-  // Each concert has an h3 with the title, followed by p tags with date, tickets, venue
-  $("h3").each((_, heading) => {
-    const $heading = $(heading);
-    const titleLink = $heading.find("a");
-    const title = titleLink.text().trim();
+  // Events are inside .em-list > div children
+  // Each div contains links to /events/ pages and ticket links (knqt.link), plus date text
+  $(".em-list > div").each((_, el) => {
+    const $el = $(el);
+    const text = $el.text();
+
+    // Find event link (first link to /events/)
+    let title = "";
+    let sourceUrl = "";
+    $el.find("a").each((_, a) => {
+      const href = $(a).attr("href") || "";
+      const linkText = $(a).text().trim();
+      if (href.includes("/events/") && linkText && linkText !== "read more" && !title) {
+        title = linkText;
+        sourceUrl = href;
+      }
+    });
+
     if (!title) return;
 
-    const sourceUrl = titleLink.attr("href") || "";
-
-    // Look at the sibling elements after this h3 for date/time, ticket, venue info
-    let dateText = "";
-    let ticketUrl = "";
-    let venueText = "";
-    let description = "";
-
-    let $next = $heading.next();
-    while ($next.length && $next.prop("tagName") !== "H3") {
-      const text = $next.text().trim();
-
-      // Date pattern: "Mar 21, 2026 (Sat), 7:30 pm - 10:00 pm"
-      if (/\b\d{4}\b.*\b\d{1,2}:\d{2}\s*(am|pm)\b/i.test(text) && !dateText) {
-        dateText = text;
+    // Find ticket link
+    let ticketUrl: string | undefined;
+    $el.find("a").each((_, a) => {
+      const href = $(a).attr("href") || "";
+      if (href.includes("knqt.link") || href.includes("ticket") || href.includes("eventbrite")) {
+        ticketUrl = href;
       }
-      // Ticket link
-      else if (/buy tickets|tickets online/i.test(text)) {
-        const link = $next.find("a").attr("href");
-        if (link) ticketUrl = link;
-      }
-      // Venue info
-      else if (/^venue:/i.test(text)) {
-        venueText = text.replace(/^venue:\s*/i, "");
-      }
-      // Description (any other paragraph with substantial text)
-      else if (text.length > 30 && !text.startsWith("--")) {
-        description = text;
-      }
+    });
 
-      $next = $next.next();
-    }
-
-    if (!dateText) return;
-
-    // Parse the date: "Mar 21, 2026 (Sat), 7:30 pm - 10:00 pm"
-    const dateMatch = dateText.match(
-      /(\w+\s+\d{1,2},\s+\d{4})\s*\(\w+\),?\s*(\d{1,2}:\d{2}\s*(?:am|pm))/i
+    // Parse date: "Mar 21, 2026 (Sat), 7:30 pm - 10:00 pm"
+    const dateMatch = text.match(
+      /(\w{3}\s+\d{1,2},\s+\d{4})\s*\(\w+\),?\s*(\d{1,2}:\d{2}\s*[ap]m)/i
     );
     if (!dateMatch) return;
 
@@ -62,20 +49,23 @@ export async function scrapeSeattleFolkloreSociety(): Promise<RawEvent[]> {
     if (isNaN(parsedDate.getTime())) return;
 
     const dateStr = parsedDate.toISOString().split("T")[0];
-
-    // Parse time: "7:30 pm" -> "19:30"
     const timeStr = parseTime(dateMatch[2]);
+
+    // Skip past events
+    const today = new Date().toISOString().split("T")[0];
+    if (dateStr < today) return;
 
     events.push({
       title,
       date: dateStr,
-      time: timeStr,
+      time: timeStr || undefined,
       venueSlug: "seattle-folklore-society",
       artistNames: [title.split(/\s*[-–—:]\s*/)[0].trim()],
-      ticketUrl: ticketUrl || undefined,
-      description: description || venueText || undefined,
+      ticketUrl,
       sourceName: "scraper:folklore-society",
-      sourceUrl: sourceUrl.startsWith("http") ? sourceUrl : `https://seafolklore.org${sourceUrl}`,
+      sourceUrl: sourceUrl.startsWith("http")
+        ? sourceUrl
+        : `https://seafolklore.org${sourceUrl}`,
     });
   });
 
@@ -83,7 +73,7 @@ export async function scrapeSeattleFolkloreSociety(): Promise<RawEvent[]> {
 }
 
 function parseTime(timeStr: string): string {
-  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*([ap]m)/i);
   if (!match) return "";
   let hours = parseInt(match[1]);
   const minutes = match[2];
