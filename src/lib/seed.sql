@@ -9,7 +9,8 @@ INSERT INTO venues (name, slug, address, neighborhood, website, calendar_url, sc
   ('The Showbox', 'the-showbox', '1426 1st Ave, Seattle, WA 98101', 'Downtown', 'https://www.showboxpresents.com', 'https://www.showboxpresents.com/events', 'showbox', 'All genres, historic venue'),
   ('Showbox SoDo', 'showbox-sodo', '1700 1st Ave S, Seattle, WA 98134', 'SoDo', 'https://www.showboxpresents.com', 'https://www.showboxpresents.com/events', 'showbox', 'Larger shows, all genres'),
   ('The Neptune Theatre', 'the-neptune', '1303 NE 45th St, Seattle, WA 98105', 'U-District', 'https://www.stgpresents.org/neptune', 'https://www.stgpresents.org/neptune', 'neptune', 'All genres, beautiful historic theater'),
-  ('Ballard Homestead', 'ballard-homestead', '6541 Jones Ave NW, Seattle, WA 98117', 'Ballard', 'https://ballardhomestead.org', 'https://ballardhomestead.org/events', 'homestead', 'Folk, acoustic, community arts space')
+  ('Ballard Homestead', 'ballard-homestead', '6541 Jones Ave NW, Seattle, WA 98117', 'Ballard', 'https://ballardhomestead.org', 'https://ballardhomestead.org/events', 'homestead', 'Folk, acoustic, community arts space'),
+  ('Fremont Abbey Arts Center', 'fremont-abbey', '4272 Fremont Ave N, Seattle, WA 98103', 'Fremont', 'https://fremontabbey.org', 'https://fremontabbey.org/events', 'abbey-arts', 'Intimate concert space, folk, indie, community')
 ON CONFLICT (slug) DO NOTHING;
 
 -- Music organizations (tracked as venues with a special scraper_type for now)

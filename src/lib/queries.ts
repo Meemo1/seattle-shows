@@ -160,6 +160,22 @@ export async function getVenueBySlug(slug: string) {
   return rows[0] || null;
 }
 
+export async function ensureVenue(
+  slug: string,
+  name: string,
+  opts?: { address?: string; neighborhood?: string; website?: string; vibe?: string }
+): Promise<void> {
+  const address = opts?.address || null;
+  const neighborhood = opts?.neighborhood || null;
+  const website = opts?.website || null;
+  const vibe = opts?.vibe || null;
+  await sql`
+    INSERT INTO venues (name, slug, address, neighborhood, website, vibe)
+    VALUES (${name}, ${slug}, ${address}, ${neighborhood}, ${website}, ${vibe})
+    ON CONFLICT (slug) DO NOTHING
+  `;
+}
+
 export async function logFetch(
   sourceName: string,
   status: "success" | "error" | "partial",

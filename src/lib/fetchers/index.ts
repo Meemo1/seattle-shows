@@ -1,7 +1,24 @@
 import { RawEvent } from "../types";
-import { upsertEvent, logFetch } from "../queries";
+import { upsertEvent, logFetch, ensureVenue } from "../queries";
 import { scrapers } from "./scrapers";
 import { fetchTicketmaster } from "./ticketmaster";
+import { fetchVenuePilot } from "./venuepilot";
+
+// All API-based fetchers (not scrapers)
+const apiFetchers = [
+  { name: "ticketmaster", fn: fetchTicketmaster },
+  { name: "venuepilot", fn: fetchVenuePilot },
+];
+
+// Ensure all needed venues exist in the database
+async function ensureVenues() {
+  await ensureVenue("fremont-abbey", "Fremont Abbey Arts Center", {
+    address: "4272 Fremont Ave N, Seattle, WA 98103",
+    neighborhood: "Fremont",
+    website: "https://fremontabbey.org",
+    vibe: "Intimate concert space, folk, indie, community",
+  });
+}
 
 export async function runAllFetchers(): Promise<{
   totalFound: number;
@@ -12,19 +29,28 @@ export async function runAllFetchers(): Promise<{
   let totalFound = 0;
   let totalNew = 0;
 
-  // Run Ticketmaster API fetcher
+  // Ensure all venue records exist before fetching events
   try {
-    const events = await fetchTicketmaster();
-    const { found, newCount } = await processEvents(events);
-    totalFound += found;
-    totalNew += newCount;
-    results.push({ source: "ticketmaster", found, new_events: newCount });
-    await logFetch("ticketmaster", "success", found, newCount);
+    await ensureVenues();
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("Ticketmaster fetch error:", message);
-    results.push({ source: "ticketmaster", found: 0, new_events: 0, error: message });
-    await logFetch("ticketmaster", "error", 0, 0, message);
+    console.error("Error ensuring venues:", err);
+  }
+
+  // Run API fetchers sequentially
+  for (const fetcher of apiFetchers) {
+    try {
+      const events = await fetcher.fn();
+      const { found, newCount } = await processEvents(events);
+      totalFound += found;
+      totalNew += newCount;
+      results.push({ source: fetcher.name, found, new_events: newCount });
+      await logFetch(fetcher.name, "success", found, newCount);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`${fetcher.name} fetch error:`, message);
+      results.push({ source: fetcher.name, found: 0, new_events: 0, error: message });
+      await logFetch(fetcher.name, "error", 0, 0, message);
+    }
   }
 
   // Run each scraper sequentially
