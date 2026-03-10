@@ -3,11 +3,13 @@ import { upsertEvent, logFetch, ensureVenue } from "../queries";
 import { scrapers } from "./scrapers";
 import { fetchTicketmaster } from "./ticketmaster";
 import { fetchVenuePilot } from "./venuepilot";
+import { fetchDice } from "./dice";
 
 // All API-based fetchers (not scrapers)
 const apiFetchers = [
   { name: "ticketmaster", fn: fetchTicketmaster },
   { name: "venuepilot", fn: fetchVenuePilot },
+  { name: "dice", fn: fetchDice },
 ];
 
 // Ensure all needed venues exist in the database
