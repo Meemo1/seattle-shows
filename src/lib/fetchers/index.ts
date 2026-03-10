@@ -18,6 +18,12 @@ async function ensureVenues() {
     website: "https://fremontabbey.org",
     vibe: "Intimate concert space, folk, indie, community",
   });
+  await ensureVenue("st-marks-cathedral", "St. Mark's Cathedral", {
+    address: "1245 10th Ave E, Seattle, WA 98102",
+    neighborhood: "Capitol Hill",
+    website: "https://saintmarks.org",
+    vibe: "Cathedral venue, The Moth, classical, choral",
+  });
 }
 
 export async function runAllFetchers(): Promise<{
