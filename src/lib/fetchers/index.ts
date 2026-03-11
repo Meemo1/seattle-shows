@@ -44,37 +44,42 @@ export async function runAllFetchers(): Promise<{
     console.error("Error ensuring venues:", err);
   }
 
-  // Run API fetchers sequentially
-  for (const fetcher of apiFetchers) {
-    try {
-      const events = await fetcher.fn();
-      const { found, newCount } = await processEvents(events);
-      totalFound += found;
-      totalNew += newCount;
-      results.push({ source: fetcher.name, found, new_events: newCount });
-      await logFetch(fetcher.name, "success", found, newCount);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`${fetcher.name} fetch error:`, message);
-      results.push({ source: fetcher.name, found: 0, new_events: 0, error: message });
-      await logFetch(fetcher.name, "error", 0, 0, message);
-    }
-  }
+  // Run all fetchers and scrapers in parallel to stay within serverless timeout
+  const allSources = [
+    ...apiFetchers.map((f) => ({ name: f.name, fn: f.fn })),
+    ...scrapers.map((s) => ({ name: s.name, fn: s.fn })),
+  ];
 
-  // Run each scraper sequentially
-  for (const scraper of scrapers) {
-    try {
-      const events = await scraper.fn();
-      const { found, newCount } = await processEvents(events);
-      totalFound += found;
-      totalNew += newCount;
-      results.push({ source: scraper.name, found, new_events: newCount });
-      await logFetch(scraper.name, "success", found, newCount);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`Scraper ${scraper.name} error:`, message);
-      results.push({ source: scraper.name, found: 0, new_events: 0, error: message });
-      await logFetch(scraper.name, "error", 0, 0, message);
+  const fetchResults = await Promise.allSettled(
+    allSources.map(async (source) => {
+      const events = await source.fn();
+      return { name: source.name, events };
+    })
+  );
+
+  // Process results sequentially (DB writes need to be sequential for consistency)
+  for (let i = 0; i < fetchResults.length; i++) {
+    const result = fetchResults[i];
+    const name = allSources[i].name;
+
+    if (result.status === "fulfilled") {
+      try {
+        const { found, newCount } = await processEvents(result.value.events);
+        totalFound += found;
+        totalNew += newCount;
+        results.push({ source: name, found, new_events: newCount });
+        await logFetch(name, "success", found, newCount);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`${name} process error:`, message);
+        results.push({ source: name, found: 0, new_events: 0, error: message });
+        await logFetch(name, "error", 0, 0, message);
+      }
+    } else {
+      const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      console.error(`${name} fetch error:`, message);
+      results.push({ source: name, found: 0, new_events: 0, error: message });
+      await logFetch(name, "error", 0, 0, message);
     }
   }
 
