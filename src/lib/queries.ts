@@ -142,6 +142,16 @@ export async function upsertEvent(raw: RawEvent): Promise<{ eventId: string; isN
           raw_data   = ${rawDataJson}::jsonb
         WHERE event_id = ${eventId} AND source_name = ${raw.sourceName}
       `;
+      // Also update genre for linked artists if this source provides one
+      if (raw.genre) {
+        const genre = raw.genre;
+        await sql`
+          UPDATE artists SET genre = ${genre}
+          WHERE id IN (
+            SELECT artist_id FROM event_artists WHERE event_id = ${eventId}
+          ) AND genre IS NULL
+        `;
+      }
       return { eventId, isNew: false };
     }
   }
