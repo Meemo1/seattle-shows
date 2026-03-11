@@ -1,5 +1,5 @@
 import { RawEvent } from "../types";
-import { upsertEvent, logFetch, ensureVenue, deduplicateEvents } from "../queries";
+import { upsertEvent, logFetch, ensureVenue, deduplicateEvents, deduplicateCrossSource } from "../queries";
 import { scrapers } from "./scrapers";
 import { fetchTicketmaster } from "./ticketmaster";
 import { fetchVenuePilot } from "./venuepilot";
@@ -57,12 +57,20 @@ export async function runAllFetchers(): Promise<{
     console.error("Error ensuring venues:", err);
   }
 
-  // Clean up any duplicate events left over from title-change fetches
+  // Clean up same-source title-change duplicates (e.g. TM appending "(Sold Out)")
   try {
     const removed = await deduplicateEvents();
     if (removed > 0) console.log(`Deduplication removed ${removed} stale duplicate event(s)`);
   } catch (err) {
     console.error("Error deduplicating events:", err);
+  }
+
+  // Clean up cross-source duplicates (TM + dedicated scraper for same venue/date)
+  try {
+    const removed = await deduplicateCrossSource();
+    if (removed > 0) console.log(`Cross-source dedup removed ${removed} duplicate event(s)`);
+  } catch (err) {
+    console.error("Error in cross-source deduplication:", err);
   }
 
   // Run all fetchers and scrapers in parallel to stay within serverless timeout
@@ -109,10 +117,12 @@ export async function runAllFetchers(): Promise<{
   if (lastfmKey) {
     try {
       const enriched = await enrichArtistGenres(lastfmKey);
-      if (enriched > 0) console.log(`Last.fm enriched ${enriched} artist genre(s)`);
+      console.log(`Last.fm: enriched ${enriched} artist genre(s)`); // always log, even 0
     } catch (err) {
       console.error("Last.fm enrichment error:", err);
     }
+  } else {
+    console.warn("Last.fm: LASTFM_API_KEY not set — skipping genre enrichment");
   }
 
   return { totalFound, totalNew, results };

@@ -244,6 +244,31 @@ export async function ensureVenue(
 }
 
 /**
+ * Remove cross-source duplicate events: Ticketmaster events for venues that have
+ * dedicated scrapers (Tractor, Sunset Tavern, Conor Byrne), where a non-TM event
+ * already exists for the same venue+date. These duplicates occurred because TM and
+ * the dedicated source had slightly different titles for the same show.
+ * Safe to call on every fetch run — it's a no-op when no such duplicates exist.
+ */
+export async function deduplicateCrossSource(): Promise<number> {
+  const result = await sql`
+    DELETE FROM events
+    WHERE id IN (
+      SELECT e.id FROM events e
+      JOIN event_sources es ON es.event_id = e.id AND es.source_name = 'ticketmaster'
+      JOIN venues v ON e.venue_id = v.id AND v.slug IN ('tractor-tavern', 'sunset-tavern', 'conor-byrne')
+      WHERE EXISTS (
+        SELECT 1 FROM events e2
+        JOIN event_sources es2 ON es2.event_id = e2.id AND es2.source_name != 'ticketmaster'
+        WHERE e2.venue_id = e.venue_id AND e2.date = e.date AND e2.id != e.id
+      )
+    )
+    RETURNING id
+  `;
+  return result.length;
+}
+
+/**
  * Remove duplicate events that were created when a source changed its event title
  * between fetches (e.g. Ticketmaster appending "(Sold Out)").
  * Keeps the most-recently-fetched record for each (source_name, external_id) pair

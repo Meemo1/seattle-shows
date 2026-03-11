@@ -3,9 +3,10 @@ import { RawEvent } from "../types";
 // Ticketmaster venue IDs mapped to our venue slugs
 // Found via: https://app.ticketmaster.com/discovery/v2/venues.json?keyword=NAME&stateCode=WA&apikey=KEY
 const VENUES = [
-  { tmId: "KovZpZAdnvnA", slug: "tractor-tavern", name: "Tractor Tavern" },
-  { tmId: "KovZpap2ne", slug: "sunset-tavern", name: "Sunset Tavern" },
-  { tmId: "KovZpZA1kdIA", slug: "conor-byrne", name: "Conor Byrne Pub" },
+  // Tractor Tavern, Sunset Tavern, and Conor Byrne are intentionally excluded here.
+  // They are covered by dedicated scrapers/APIs (Tractor scraper, DICE, VenuePilot)
+  // which have more accurate titles. Including them here caused cross-source duplicates
+  // when Ticketmaster and the dedicated source used slightly different event titles.
   { tmId: "KovZpZA1vFtA", slug: "the-crocodile", name: "The Crocodile" },
   { tmId: "KovZpappxe", slug: "neumos", name: "Neumos" },
   { tmId: "KovZpZAEknlA", slug: "the-showbox", name: "Showbox" },

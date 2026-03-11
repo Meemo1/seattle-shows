@@ -40,7 +40,7 @@ async function getArtistGenre(
 
   // Take the first tag with meaningful count that isn't a meta-tag
   for (const tag of tags) {
-    if (tag.count < 10) break; // low-count tags are noise
+    if (tag.count < 5) break; // low-count tags are noise (threshold lowered from 10 for niche/local artists)
     const name = tag.name.toLowerCase();
     if (!META_TAGS.has(name) && name.length > 1) {
       return tag.name.toLowerCase();
@@ -68,6 +68,7 @@ export async function enrichArtistGenres(
     LIMIT ${limit}
   `;
 
+  console.log(`Last.fm: ${artists.length} artist(s) need genre enrichment`);
   if (artists.length === 0) return 0;
 
   let enriched = 0;
