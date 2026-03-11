@@ -99,8 +99,10 @@ export async function fetchTicketmaster(): Promise<RawEvent[]> {
             classification?.subGenre?.name ||
             classification?.genre?.name ||
             undefined;
+          // "Undefined" and "Other" are Ticketmaster placeholders — skip them
+          const TM_JUNK_GENRES = new Set(["Undefined", "Other"]);
           const genre =
-            rawGenre && rawGenre !== "Undefined" ? rawGenre : undefined;
+            rawGenre && !TM_JUNK_GENRES.has(rawGenre) ? rawGenre : undefined;
 
           allEvents.push({
             title: event.name,
