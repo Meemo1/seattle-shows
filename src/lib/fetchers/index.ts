@@ -1,5 +1,5 @@
 import { RawEvent } from "../types";
-import { upsertEvent, logFetch, ensureVenue } from "../queries";
+import { upsertEvent, logFetch, ensureVenue, deduplicateEvents } from "../queries";
 import { scrapers } from "./scrapers";
 import { fetchTicketmaster } from "./ticketmaster";
 import { fetchVenuePilot } from "./venuepilot";
@@ -54,6 +54,14 @@ export async function runAllFetchers(): Promise<{
     await ensureVenues();
   } catch (err) {
     console.error("Error ensuring venues:", err);
+  }
+
+  // Clean up any duplicate events left over from title-change fetches
+  try {
+    const removed = await deduplicateEvents();
+    if (removed > 0) console.log(`Deduplication removed ${removed} stale duplicate event(s)`);
+  } catch (err) {
+    console.error("Error deduplicating events:", err);
   }
 
   // Run all fetchers and scrapers in parallel to stay within serverless timeout
