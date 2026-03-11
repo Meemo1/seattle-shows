@@ -88,12 +88,19 @@ export async function runAllFetchers(): Promise<{
 
 async function processEvents(events: RawEvent[]): Promise<{ found: number; newCount: number }> {
   let newCount = 0;
-  for (const event of events) {
-    try {
-      const result = await upsertEvent(event);
-      if (result.isNew) newCount++;
-    } catch (err) {
-      console.error(`Error upserting event "${event.title}":`, err);
+  const BATCH_SIZE = 10;
+
+  for (let i = 0; i < events.length; i += BATCH_SIZE) {
+    const batch = events.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map((event) => upsertEvent(event))
+    );
+    for (const result of results) {
+      if (result.status === "fulfilled" && result.value.isNew) {
+        newCount++;
+      } else if (result.status === "rejected") {
+        console.error("Error upserting event:", result.reason);
+      }
     }
   }
   return { found: events.length, newCount };

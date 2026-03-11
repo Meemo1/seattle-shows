@@ -73,13 +73,22 @@ export async function getUpcomingEvents(filters?: {
   return rows as EventWithVenue[];
 }
 
+// Cache venue IDs to avoid repeated lookups
+const venueIdCache = new Map<string, string>();
+
+async function getVenueId(slug: string): Promise<string | null> {
+  if (venueIdCache.has(slug)) return venueIdCache.get(slug)!;
+  const venues = await sql`SELECT id FROM venues WHERE slug = ${slug}`;
+  if (venues.length === 0) return null;
+  venueIdCache.set(slug, venues[0].id);
+  return venues[0].id;
+}
+
 export async function upsertEvent(raw: RawEvent): Promise<{ eventId: string; isNew: boolean }> {
-  // Find the venue
-  const venues = await sql`SELECT id FROM venues WHERE slug = ${raw.venueSlug}`;
-  if (venues.length === 0) {
+  const venueId = await getVenueId(raw.venueSlug);
+  if (!venueId) {
     throw new Error(`Venue not found: ${raw.venueSlug}`);
   }
-  const venueId = venues[0].id;
 
   const timeVal = raw.time || null;
   const doorsVal = raw.doorsTime || null;
@@ -87,54 +96,52 @@ export async function upsertEvent(raw: RawEvent): Promise<{ eventId: string; isN
   const ticketVal = raw.ticketUrl || null;
   const descVal = raw.description || null;
 
-  // Upsert the event
+  // Upsert event + record source in a single round-trip using a CTE
+  const sourceId = raw.sourceId || null;
+  const sourceUrl = raw.sourceUrl || null;
+  const rawDataJson = JSON.stringify(raw.rawData || null);
+
   const result = await sql`
-    INSERT INTO events (venue_id, title, date, time, doors_time, price, ticket_url, description)
-    VALUES (${venueId}, ${raw.title}, ${raw.date}, ${timeVal}, ${doorsVal}, ${priceVal}, ${ticketVal}, ${descVal})
-    ON CONFLICT (venue_id, date, title) DO UPDATE SET
-      time = COALESCE(events.time, EXCLUDED.time),
-      doors_time = COALESCE(events.doors_time, EXCLUDED.doors_time),
-      price = COALESCE(events.price, EXCLUDED.price),
-      ticket_url = COALESCE(events.ticket_url, EXCLUDED.ticket_url),
-      description = COALESCE(events.description, EXCLUDED.description),
-      updated_at = now()
-    RETURNING id, (xmax = 0) as is_new
+    WITH evt AS (
+      INSERT INTO events (venue_id, title, date, time, doors_time, price, ticket_url, description)
+      VALUES (${venueId}, ${raw.title}, ${raw.date}, ${timeVal}, ${doorsVal}, ${priceVal}, ${ticketVal}, ${descVal})
+      ON CONFLICT (venue_id, date, title) DO UPDATE SET
+        time = COALESCE(events.time, EXCLUDED.time),
+        doors_time = COALESCE(events.doors_time, EXCLUDED.doors_time),
+        price = COALESCE(events.price, EXCLUDED.price),
+        ticket_url = COALESCE(events.ticket_url, EXCLUDED.ticket_url),
+        description = COALESCE(events.description, EXCLUDED.description),
+        updated_at = now()
+      RETURNING id, (xmax = 0) as is_new
+    ), src AS (
+      INSERT INTO event_sources (event_id, source_name, external_id, source_url, raw_data)
+      SELECT id, ${raw.sourceName}, ${sourceId}, ${sourceUrl}, ${rawDataJson}::jsonb FROM evt
+      ON CONFLICT (event_id, source_name) DO UPDATE SET
+        fetched_at = now(),
+        raw_data = EXCLUDED.raw_data
+    )
+    SELECT id, is_new FROM evt
   `;
 
   const eventId = result[0].id;
   const isNew = result[0].is_new;
 
-  // Record the source
-  const sourceId = raw.sourceId || null;
-  const sourceUrl = raw.sourceUrl || null;
-  const rawDataJson = JSON.stringify(raw.rawData || null);
-
-  await sql`
-    INSERT INTO event_sources (event_id, source_name, external_id, source_url, raw_data)
-    VALUES (${eventId}, ${raw.sourceName}, ${sourceId}, ${sourceUrl}, ${rawDataJson}::jsonb)
-    ON CONFLICT (event_id, source_name) DO UPDATE SET
-      fetched_at = now(),
-      raw_data = EXCLUDED.raw_data
-  `;
-
-  // Link artists
+  // Link artists — combine insert + lookup into one query per artist
   for (const artistName of raw.artistNames) {
     const artistSlug = slugify(artistName);
     if (!artistSlug) continue;
 
     const trimmedName = artistName.trim();
     await sql`
-      INSERT INTO artists (name, slug) VALUES (${trimmedName}, ${artistSlug})
-      ON CONFLICT (slug) DO NOTHING
+      WITH art AS (
+        INSERT INTO artists (name, slug) VALUES (${trimmedName}, ${artistSlug})
+        ON CONFLICT (slug) DO UPDATE SET name = artists.name
+        RETURNING id
+      )
+      INSERT INTO event_artists (event_id, artist_id)
+      SELECT ${eventId}, id FROM art
+      ON CONFLICT (event_id, artist_id) DO NOTHING
     `;
-
-    const artists = await sql`SELECT id FROM artists WHERE slug = ${artistSlug}`;
-    if (artists.length > 0) {
-      await sql`
-        INSERT INTO event_artists (event_id, artist_id) VALUES (${eventId}, ${artists[0].id})
-        ON CONFLICT (event_id, artist_id) DO NOTHING
-      `;
-    }
   }
 
   return { eventId, isNew };
