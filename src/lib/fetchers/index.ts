@@ -26,6 +26,18 @@ async function ensureVenues() {
     website: "https://saintmarks.org",
     vibe: "Cathedral venue, The Moth, classical, choral",
   });
+  await ensureVenue("ballard-homestead", "Ballard Homestead", {
+    address: "6541 Jones Ave NW, Seattle, WA 98117",
+    neighborhood: "Ballard",
+    website: "https://ballardhomestead.org",
+    vibe: "Historic community hall, folk, singer-songwriter, intimate",
+  });
+  await ensureVenue("washington-hall", "Washington Hall", {
+    address: "153 14th Ave, Seattle, WA 98122",
+    neighborhood: "Central District",
+    website: "https://washingtonhall.org",
+    vibe: "Historic hall, world music, ecstatic dance, community",
+  });
 }
 
 export async function runAllFetchers(): Promise<{
