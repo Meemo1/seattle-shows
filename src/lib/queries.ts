@@ -8,12 +8,22 @@ export async function getUpcomingEvents(filters?: {
   toDate?: string;
   search?: string;
 }): Promise<EventWithVenue[]> {
+  // Correlated subquery: first non-null genre from linked artists
+  // Used in all query variants below
+  const genreSubquery = sql`(
+    SELECT a.genre FROM artists a
+    JOIN event_artists ea ON ea.artist_id = a.id
+    WHERE ea.event_id = e.id AND a.genre IS NOT NULL
+    LIMIT 1
+  ) as genre`;
+
   // For the common case (no filters), use a simple tagged template
   if (!filters?.venueSlug && !filters?.fromDate && !filters?.toDate && !filters?.search) {
     const rows = await sql`
       SELECT e.id, e.venue_id, e.title, e.date::text, e.time::text, e.doors_time::text,
              e.price, e.ticket_url, e.description, e.cancelled,
-             v.name as venue_name, v.slug as venue_slug, v.neighborhood
+             v.name as venue_name, v.slug as venue_slug, v.neighborhood,
+             ${genreSubquery}
       FROM events e
       JOIN venues v ON e.venue_id = v.id
       WHERE e.date >= CURRENT_DATE AND e.cancelled = false
@@ -28,7 +38,8 @@ export async function getUpcomingEvents(filters?: {
     const rows = await sql`
       SELECT e.id, e.venue_id, e.title, e.date::text, e.time::text, e.doors_time::text,
              e.price, e.ticket_url, e.description, e.cancelled,
-             v.name as venue_name, v.slug as venue_slug, v.neighborhood
+             v.name as venue_name, v.slug as venue_slug, v.neighborhood,
+             ${genreSubquery}
       FROM events e
       JOIN venues v ON e.venue_id = v.id
       WHERE e.date >= CURRENT_DATE AND e.cancelled = false
@@ -45,7 +56,8 @@ export async function getUpcomingEvents(filters?: {
     const rows = await sql`
       SELECT e.id, e.venue_id, e.title, e.date::text, e.time::text, e.doors_time::text,
              e.price, e.ticket_url, e.description, e.cancelled,
-             v.name as venue_name, v.slug as venue_slug, v.neighborhood
+             v.name as venue_name, v.slug as venue_slug, v.neighborhood,
+             ${genreSubquery}
       FROM events e
       JOIN venues v ON e.venue_id = v.id
       WHERE e.date >= CURRENT_DATE AND e.cancelled = false
@@ -61,7 +73,8 @@ export async function getUpcomingEvents(filters?: {
   const rows = await sql`
     SELECT e.id, e.venue_id, e.title, e.date::text, e.time::text, e.doors_time::text,
            e.price, e.ticket_url, e.description, e.cancelled,
-           v.name as venue_name, v.slug as venue_slug, v.neighborhood
+           v.name as venue_name, v.slug as venue_slug, v.neighborhood,
+           ${genreSubquery}
     FROM events e
     JOIN venues v ON e.venue_id = v.id
     WHERE e.date >= CURRENT_DATE AND e.cancelled = false
@@ -159,7 +172,8 @@ export async function upsertEvent(raw: RawEvent): Promise<{ eventId: string; isN
   const eventId = result[0].id as string;
   const isNew = result[0].is_new as boolean;
 
-  // Link artists
+  // Link artists and save genre if provided (only fills NULL — never overwrites richer data)
+  const genre = raw.genre || null;
   for (const artistName of raw.artistNames) {
     const artistSlug = slugify(artistName);
     if (!artistSlug) continue;
@@ -169,6 +183,10 @@ export async function upsertEvent(raw: RawEvent): Promise<{ eventId: string; isN
         INSERT INTO artists (name, slug) VALUES (${trimmedName}, ${artistSlug})
         ON CONFLICT (slug) DO UPDATE SET name = artists.name
         RETURNING id
+      ),
+      genre_update AS (
+        UPDATE artists SET genre = ${genre}
+        WHERE slug = ${artistSlug} AND genre IS NULL AND ${genre} IS NOT NULL
       )
       INSERT INTO event_artists (event_id, artist_id)
       SELECT ${eventId}, id FROM art

@@ -4,6 +4,7 @@ import { scrapers } from "./scrapers";
 import { fetchTicketmaster } from "./ticketmaster";
 import { fetchVenuePilot } from "./venuepilot";
 import { fetchDice } from "./dice";
+import { enrichArtistGenres } from "./lastfm";
 
 // All API-based fetchers (not scrapers)
 const apiFetchers = [
@@ -100,6 +101,17 @@ export async function runAllFetchers(): Promise<{
       console.error(`${name} fetch error:`, message);
       results.push({ source: name, found: 0, new_events: 0, error: message });
       await logFetch(name, "error", 0, 0, message);
+    }
+  }
+
+  // Enrich artists that still have no genre via Last.fm (best-effort, 30 per run)
+  const lastfmKey = process.env.LASTFM_API_KEY;
+  if (lastfmKey) {
+    try {
+      const enriched = await enrichArtistGenres(lastfmKey);
+      if (enriched > 0) console.log(`Last.fm enriched ${enriched} artist genre(s)`);
+    } catch (err) {
+      console.error("Last.fm enrichment error:", err);
     }
   }
 

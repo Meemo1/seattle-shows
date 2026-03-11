@@ -27,6 +27,10 @@ interface TmEvent {
     };
   };
   priceRanges?: { min: number; max: number; currency: string }[];
+  classifications?: Array<{
+    genre?: { id: string; name: string };
+    subGenre?: { id: string; name: string };
+  }>;
   _embedded?: {
     venues?: { name: string; id: string }[];
     attractions?: { name: string; id: string }[];
@@ -88,12 +92,23 @@ export async function fetchTicketmaster(): Promise<RawEvent[]> {
             }
           }
 
+          // Extract genre: prefer subGenre (more specific), fall back to genre
+          // Skip Ticketmaster's placeholder value "Undefined"
+          const classification = event.classifications?.[0];
+          const rawGenre =
+            classification?.subGenre?.name ||
+            classification?.genre?.name ||
+            undefined;
+          const genre =
+            rawGenre && rawGenre !== "Undefined" ? rawGenre : undefined;
+
           allEvents.push({
             title: event.name,
             date: event.dates.start.localDate,
             time: event.dates.start.localTime?.slice(0, 5),
             venueSlug: venue.slug,
             artistNames: artistNames.length ? artistNames : [event.name],
+            genre,
             price,
             ticketUrl: event.url,
             sourceName: "ticketmaster",

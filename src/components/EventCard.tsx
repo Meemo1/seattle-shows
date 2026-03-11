@@ -18,6 +18,9 @@ export default function EventCard({ event }: { event: EventWithVenue }) {
           <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-500">
             {event.time && <span>{formatTime(event.time)}</span>}
             {event.price && <span>{event.price}</span>}
+            {event.genre && (
+              <span className="text-xs text-gray-400 italic">{event.genre}</span>
+            )}
           </div>
         </div>
         {event.ticket_url && (

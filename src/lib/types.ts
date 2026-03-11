@@ -29,6 +29,7 @@ export interface EventWithVenue extends Event {
   venue_name: string;
   venue_slug: string;
   neighborhood: string | null;
+  genre: string | null;
 }
 
 export interface Artist {
@@ -45,6 +46,7 @@ export interface RawEvent {
   doorsTime?: string;
   venueSlug: string;
   artistNames: string[];
+  genre?: string;
   price?: string;
   ticketUrl?: string;
   description?: string;
