@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runAllFetchers } from "@/lib/fetchers";
 
+export const maxDuration = 60;
+
 export async function GET(request: NextRequest) {
   // Verify the cron secret to prevent unauthorized calls
   const authHeader = request.headers.get("authorization");

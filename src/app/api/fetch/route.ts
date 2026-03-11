@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runAllFetchers } from "@/lib/fetchers";
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   // Simple secret check for admin actions
   const authHeader = request.headers.get("authorization");
