@@ -85,6 +85,11 @@ export async function scrapeTractorTavern(): Promise<RawEvent[]> {
         .filter((a) => a.length > 0);
     }
 
+    // Skip "Tractor Presents: X AT The Sunset" events — these are shows Tractor
+    // presents at Sunset Tavern, not at Tractor Tavern itself. DICE already has
+    // them correctly listed under Sunset Tavern, so skip here to avoid duplicates.
+    if (/at the sunset/i.test(title)) return; // skip: DICE has this at Sunset Tavern
+
     events.push({
       title,
       date: dateStr,

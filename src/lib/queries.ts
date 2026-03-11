@@ -269,6 +269,48 @@ export async function deduplicateCrossSource(): Promise<number> {
 }
 
 /**
+ * One-time cleanup for three categories of legacy duplicates:
+ * 1. Ticketmaster "NC " (Not Confirmed) pre-announcements — TM lists these alongside
+ *    the confirmed event with a different ID, causing duplicates.
+ * 2. Tractor scraper "AT The Sunset" events — Tractor's site lists shows they present
+ *    at Sunset Tavern, so the scraper was assigning them to tractor-tavern venue.
+ *    DICE already has them under sunset-tavern correctly.
+ * 3. Stale "3/dd " date-prefix events from the old Abbey Arts scraper format —
+ *    the rewritten scraper strips the prefix so clean versions now exist alongside.
+ * Safe to call on every run — a no-op once all legacy records are gone.
+ */
+export async function cleanupLegacyDuplicates(): Promise<number> {
+  const r1 = await sql`
+    DELETE FROM events
+    WHERE id IN (
+      SELECT e.id FROM events e
+      JOIN event_sources es ON es.event_id = e.id AND es.source_name = 'ticketmaster'
+      WHERE e.title LIKE 'NC %'
+    )
+    RETURNING id
+  `;
+  const r2 = await sql`
+    DELETE FROM events
+    WHERE id IN (
+      SELECT e.id FROM events e
+      JOIN event_sources es ON es.event_id = e.id AND es.source_name = 'scraper:tractor'
+      WHERE e.title ~* 'at the sunset'
+    )
+    RETURNING id
+  `;
+  const r3 = await sql`
+    DELETE FROM events
+    WHERE id IN (
+      SELECT e.id FROM events e
+      JOIN event_sources es ON es.event_id = e.id AND es.source_name = 'scraper:abbey-arts'
+      WHERE e.title ~ '^\d+/\d+ '
+    )
+    RETURNING id
+  `;
+  return r1.length + r2.length + r3.length;
+}
+
+/**
  * Remove duplicate events that were created when a source changed its event title
  * between fetches (e.g. Ticketmaster appending "(Sold Out)").
  * Keeps the most-recently-fetched record for each (source_name, external_id) pair

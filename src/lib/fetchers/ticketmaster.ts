@@ -105,6 +105,11 @@ export async function fetchTicketmaster(): Promise<RawEvent[]> {
           const genre =
             rawGenre && !TM_JUNK_GENRES.has(rawGenre) ? rawGenre : undefined;
 
+          // Skip Ticketmaster "NC " (Not Confirmed) pre-announcements — they appear
+          // alongside the confirmed listing with a different ID, causing duplicates.
+          // The confirmed version always has the same show without the prefix.
+          if (event.name.startsWith("NC ")) continue;
+
           allEvents.push({
             title: event.name,
             date: event.dates.start.localDate,

@@ -1,5 +1,5 @@
 import { RawEvent } from "../types";
-import { upsertEvent, logFetch, ensureVenue, deduplicateEvents, deduplicateCrossSource } from "../queries";
+import { upsertEvent, logFetch, ensureVenue, deduplicateEvents, deduplicateCrossSource, cleanupLegacyDuplicates } from "../queries";
 import { scrapers } from "./scrapers";
 import { fetchTicketmaster } from "./ticketmaster";
 import { fetchVenuePilot } from "./venuepilot";
@@ -71,6 +71,15 @@ export async function runAllFetchers(): Promise<{
     if (removed > 0) console.log(`Cross-source dedup removed ${removed} duplicate event(s)`);
   } catch (err) {
     console.error("Error in cross-source deduplication:", err);
+  }
+
+  // Clean up legacy duplicates: TM "NC " events, Tractor "AT The Sunset" events,
+  // and stale Abbey Arts events with old date-prefix title format
+  try {
+    const removed = await cleanupLegacyDuplicates();
+    if (removed > 0) console.log(`Legacy cleanup removed ${removed} duplicate event(s)`);
+  } catch (err) {
+    console.error("Error in legacy duplicate cleanup:", err);
   }
 
   // Run all fetchers and scrapers in parallel to stay within serverless timeout
