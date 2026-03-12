@@ -193,15 +193,17 @@ export async function upsertEvent(raw: RawEvent): Promise<{ eventId: string; isN
         INSERT INTO artists (name, slug) VALUES (${trimmedName}, ${artistSlug})
         ON CONFLICT (slug) DO UPDATE SET name = artists.name
         RETURNING id
-      ),
-      genre_update AS (
-        UPDATE artists SET genre = ${genre}
-        WHERE slug = ${artistSlug} AND genre IS NULL AND ${genre} IS NOT NULL
       )
       INSERT INTO event_artists (event_id, artist_id)
       SELECT ${eventId}, id FROM art
       ON CONFLICT (event_id, artist_id) DO NOTHING
     `;
+    if (genre) {
+      await sql`
+        UPDATE artists SET genre = ${genre}
+        WHERE slug = ${artistSlug} AND genre IS NULL
+      `;
+    }
   }
 
   return { eventId, isNew };
