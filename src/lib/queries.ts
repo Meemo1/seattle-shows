@@ -313,21 +313,21 @@ export async function cleanupLegacyDuplicates(): Promise<number> {
 }
 
 /**
- * Delete Abbey Arts events that have no artist links — these were inserted during
- * a broken run where the main event CTE succeeded but the artist loop failed with a
- * type error. Without artist links they can't get genre tags, and some non-music
- * events (sound baths, story slams) may have slipped through the old filter.
+ * Delete all Abbey Arts events before each fetch so they are always re-inserted
+ * fresh. This ensures the latest scraper filters (non-music events, name cleanup)
+ * and artist linking always apply — without this, events matched by sourceId in
+ * Step 1 take an early-return path that skips the artist loop entirely, leaving
+ * stale artist names and missing genre links from previous runs.
  *
- * Self-limiting: once events are re-fetched with the fixed scraper they'll have
- * artist links, so the NOT IN condition won't match them and this becomes a no-op.
+ * Abbey Arts has ~44 events, so the delete + re-insert cost is negligible.
+ * CASCADE handles event_sources and event_artists automatically.
  */
-export async function resetUnlinkedAbbeyArtsEvents(): Promise<number> {
+export async function resetAbbeyArtsEvents(): Promise<number> {
   const result = await sql`
     DELETE FROM events
     WHERE id IN (
-      SELECT es.event_id FROM event_sources es
-      WHERE es.source_name = 'scraper:abbey-arts'
-      AND es.event_id NOT IN (SELECT event_id FROM event_artists)
+      SELECT event_id FROM event_sources
+      WHERE source_name = 'scraper:abbey-arts'
     )
     RETURNING id
   `;

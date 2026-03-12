@@ -1,5 +1,5 @@
 import { RawEvent } from "../types";
-import { upsertEvent, logFetch, ensureVenue, deduplicateEvents, deduplicateCrossSource, cleanupLegacyDuplicates, resetUnlinkedAbbeyArtsEvents } from "../queries";
+import { upsertEvent, logFetch, ensureVenue, deduplicateEvents, deduplicateCrossSource, cleanupLegacyDuplicates, resetAbbeyArtsEvents } from "../queries";
 import { scrapers } from "./scrapers";
 import { fetchTicketmaster } from "./ticketmaster";
 import { fetchVenuePilot } from "./venuepilot";
@@ -82,14 +82,13 @@ export async function runAllFetchers(): Promise<{
     console.error("Error in legacy duplicate cleanup:", err);
   }
 
-  // Reset Abbey Arts events that were inserted without artist links (due to a now-fixed
-  // SQL type bug). Deleting them forces a clean re-fetch with proper artist linking.
-  // Self-limiting: becomes a no-op once they're re-inserted with artist links.
+  // Delete all Abbey Arts events before re-fetching so the latest scraper filters
+  // and artist name cleanup always apply (avoids stale data from the sourceId early-return path)
   try {
-    const removed = await resetUnlinkedAbbeyArtsEvents();
-    if (removed > 0) console.log(`Abbey Arts reset: removed ${removed} unlinked event(s) for re-fetch`);
+    const removed = await resetAbbeyArtsEvents();
+    if (removed > 0) console.log(`Abbey Arts: cleared ${removed} stale event(s) for fresh re-fetch`);
   } catch (err) {
-    console.error("Error resetting unlinked Abbey Arts events:", err);
+    console.error("Error resetting Abbey Arts events:", err);
   }
 
   // Run all fetchers and scrapers in parallel to stay within serverless timeout
