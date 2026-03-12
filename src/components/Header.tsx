@@ -1,21 +1,24 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Header() {
+  const pathname = usePathname();
+
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-        <Link href="/" className="text-xl font-bold text-gray-900">
-          Seattle Shows
+    <header className="site-header">
+      <p className="site-eyebrow">Seattle · Ballard · Beyond</p>
+      <h1 className="site-title">Seattle Shows</h1>
+      <div className="site-ornament">✦ ✦ ✦</div>
+      <nav className="site-nav">
+        <Link href="/" className={pathname === "/" ? "active" : ""}>
+          Upcoming
         </Link>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/" className="text-gray-600 hover:text-gray-900">
-            Upcoming
-          </Link>
-          <Link href="/venues" className="text-gray-600 hover:text-gray-900">
-            Venues
-          </Link>
-        </nav>
-      </div>
+        <Link href="/venues" className={pathname.startsWith("/venues") ? "active" : ""}>
+          Venues
+        </Link>
+      </nav>
     </header>
   );
 }

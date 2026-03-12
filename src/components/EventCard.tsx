@@ -1,38 +1,41 @@
 import { EventWithVenue } from "@/lib/types";
 import { formatTime } from "@/lib/utils";
 
+const FREE_RE = /free|donation/i;
+
 export default function EventCard({ event }: { event: EventWithVenue }) {
+  const isFree = !event.price || FREE_RE.test(event.price);
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:border-gray-400 transition-colors">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-lg leading-tight">{event.title}</h3>
-          <div className="flex flex-wrap items-center gap-2 mt-1.5 text-sm text-gray-600">
-            <span className="inline-flex items-center bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-medium">
-              {event.venue_name}
-            </span>
-            {event.neighborhood && (
-              <span className="text-gray-400">{event.neighborhood}</span>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-500">
-            {event.time && <span>{formatTime(event.time)}</span>}
-            {event.price && <span>{event.price}</span>}
-            {event.genre && (
-              <span className="text-xs text-gray-400 italic">{event.genre}</span>
-            )}
-          </div>
-        </div>
+    <div className="show-card">
+      <div className="show-card-top">
+        <span className="show-name">{event.title}</span>
         {event.ticket_url && (
           <a
             href={event.ticket_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 bg-blue-600 text-white text-sm px-3 py-1.5 rounded hover:bg-blue-700 transition-colors"
+            className={isFree ? "btn-free" : "btn-tickets"}
           >
-            Tickets
+            {isFree ? "Free" : "Tickets"}
           </a>
         )}
+      </div>
+
+      <div className="show-venue-row">
+        <span className="show-venue">{event.venue_name}</span>
+        {event.neighborhood && (
+          <>
+            <span className="show-dot">·</span>
+            <span className="show-neighborhood">{event.neighborhood}</span>
+          </>
+        )}
+      </div>
+
+      <div className="show-meta">
+        {event.time && <span className="show-time">{formatTime(event.time)}</span>}
+        {event.price && <span className="show-price">{event.price}</span>}
+        {event.genre && <span className="show-genre">{event.genre}</span>}
       </div>
     </div>
   );

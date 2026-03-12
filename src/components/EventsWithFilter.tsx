@@ -59,32 +59,34 @@ export default function EventsWithFilter({
 
   return (
     <>
-      {/* Venue filter */}
+      {/* Venue filter pills */}
       {venues.length > 1 && (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6">
+        <div className="filters">
           {venues.map((venue) => {
             const active = selected.has(venue.slug);
             return (
-              <label
+              <button
                 key={venue.slug}
-                className="flex items-center gap-1.5 cursor-pointer text-sm select-none"
+                onClick={() => toggleVenue(venue.slug)}
+                className={`filter-pill${active ? " active" : ""}`}
               >
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={() => toggleVenue(venue.slug)}
-                  className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
-                />
-                <span className={active ? "text-gray-800 font-medium" : "text-gray-400"}>
-                  {venue.name}
-                </span>
-              </label>
+                {venue.name}
+              </button>
             );
           })}
           {!allSelected && (
             <button
               onClick={selectAll}
-              className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
+              style={{
+                fontFamily: "'Crimson Pro', serif",
+                fontSize: "13px",
+                fontStyle: "italic",
+                color: "var(--color-rust)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                letterSpacing: "0.06em",
+              }}
             >
               Select all
             </button>
@@ -94,26 +96,25 @@ export default function EventsWithFilter({
 
       {/* Event groups */}
       {grouped.size === 0 ? (
-        <p className="text-center text-gray-500 py-12">
+        <p className="text-center py-12" style={{ color: "var(--color-ochre-muted)" }}>
           No shows match the selected venues.
         </p>
       ) : (
         <div className="space-y-6">
           {Array.from(grouped.entries()).map(([date, dateEvents]) => (
             <section key={date}>
-              <div className="sticky top-0 z-10 bg-gray-50 pt-2 pb-3">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    {formatDate(date)}
-                  </h2>
-                  <span className="text-xs font-medium text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">
-                    {dateEvents.length}{" "}
-                    {dateEvents.length === 1 ? "show" : "shows"}
+              <div
+                className="sticky top-0 z-10 pt-2 pb-3"
+                style={{ backgroundColor: "var(--color-paper)" }}
+              >
+                <div className="dateline">
+                  <span className="dateline-text">{formatDate(date)}</span>
+                  <span className="dateline-count">
+                    {dateEvents.length} {dateEvents.length === 1 ? "show" : "shows"}
                   </span>
                 </div>
-                <div className="mt-2 border-b border-gray-200" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+              <div className="shows-grid">
                 {dateEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}

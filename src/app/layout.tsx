@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Abril_Fatface, Crimson_Pro } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const abril = Abril_Fatface({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-abril",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const crimson = Crimson_Pro({
   subsets: ["latin"],
+  weight: ["400", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-crimson",
 });
 
 export const metadata: Metadata = {
@@ -24,10 +27,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <main className="min-h-screen bg-gray-50">
+      <body className={`${abril.variable} ${crimson.variable}`}>
+        <main className="relative z-10">
           {children}
         </main>
       </body>
