@@ -4,7 +4,7 @@ import { formatTime } from "@/lib/utils";
 const FREE_RE = /free|donation/i;
 
 export default function EventCard({ event }: { event: EventWithVenue }) {
-  const isFree = !event.price || FREE_RE.test(event.price);
+  const isFree = Boolean(event.price && FREE_RE.test(event.price));
 
   return (
     <div className="show-card">
