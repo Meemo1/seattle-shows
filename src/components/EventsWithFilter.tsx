@@ -59,31 +59,34 @@ export default function EventsWithFilter({
 
   return (
     <>
-      {/* Venue filter pills */}
+      {/* Venue filter */}
       {venues.length > 1 && (
-        <div className="flex flex-wrap items-center gap-2 mb-6">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6">
           {venues.map((venue) => {
             const active = selected.has(venue.slug);
             return (
-              <button
+              <label
                 key={venue.slug}
-                onClick={() => toggleVenue(venue.slug)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                  active
-                    ? "bg-gray-800 text-white"
-                    : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-                }`}
+                className="flex items-center gap-1.5 cursor-pointer text-sm select-none"
               >
-                {venue.name}
-              </button>
+                <input
+                  type="checkbox"
+                  checked={active}
+                  onChange={() => toggleVenue(venue.slug)}
+                  className="w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+                />
+                <span className={active ? "text-gray-800 font-medium" : "text-gray-400"}>
+                  {venue.name}
+                </span>
+              </label>
             );
           })}
           {!allSelected && (
             <button
               onClick={selectAll}
-              className="px-3 py-1 rounded-full text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+              className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
             >
-              Show all
+              Select all
             </button>
           )}
         </div>
