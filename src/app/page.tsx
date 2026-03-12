@@ -61,7 +61,7 @@ export default async function HomePage() {
                   </div>
                   <div className="mt-2 border-b border-gray-200" />
                 </div>
-                <div className="space-y-3 mt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
                   {dateEvents!.map((event) => (
                     <EventCard key={event.id} event={event} />
                   ))}
