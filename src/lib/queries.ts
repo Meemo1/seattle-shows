@@ -313,6 +313,28 @@ export async function cleanupLegacyDuplicates(): Promise<number> {
 }
 
 /**
+ * Delete Abbey Arts events that have no artist links — these were inserted during
+ * a broken run where the main event CTE succeeded but the artist loop failed with a
+ * type error. Without artist links they can't get genre tags, and some non-music
+ * events (sound baths, story slams) may have slipped through the old filter.
+ *
+ * Self-limiting: once events are re-fetched with the fixed scraper they'll have
+ * artist links, so the NOT IN condition won't match them and this becomes a no-op.
+ */
+export async function resetUnlinkedAbbeyArtsEvents(): Promise<number> {
+  const result = await sql`
+    DELETE FROM events
+    WHERE id IN (
+      SELECT es.event_id FROM event_sources es
+      WHERE es.source_name = 'scraper:abbey-arts'
+      AND es.event_id NOT IN (SELECT event_id FROM event_artists)
+    )
+    RETURNING id
+  `;
+  return result.length;
+}
+
+/**
  * Remove duplicate events that were created when a source changed its event title
  * between fetches (e.g. Ticketmaster appending "(Sold Out)").
  * Keeps the most-recently-fetched record for each (source_name, external_id) pair
