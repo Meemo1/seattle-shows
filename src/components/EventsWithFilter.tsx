@@ -45,6 +45,10 @@ export default function EventsWithFilter({
     setSelected(new Set(venues.map((v) => v.slug)));
   }
 
+  function deselectAll() {
+    setSelected(new Set());
+  }
+
   // Filter events by selected venues, then group by date
   const grouped = useMemo(() => {
     const map = new Map<string, EventWithVenue[]>();
@@ -74,7 +78,23 @@ export default function EventsWithFilter({
               </button>
             );
           })}
-          {!allSelected && (
+          {allSelected ? (
+            <button
+              onClick={deselectAll}
+              style={{
+                fontFamily: "'Crimson Pro', serif",
+                fontSize: "13px",
+                fontStyle: "italic",
+                color: "var(--color-rust)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                letterSpacing: "0.06em",
+              }}
+            >
+              Deselect all
+            </button>
+          ) : (
             <button
               onClick={selectAll}
               style={{
