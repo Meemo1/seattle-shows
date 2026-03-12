@@ -147,18 +147,25 @@ export async function scrapeAbbeyArts(): Promise<RawEvent[]> {
     // Skip events not at our tracked venues
     if (!venueSlug) continue;
 
-    // Skip recurring multi-week events (classes, workshops, etc.)
+    // Skip non-music events (classes, workshops, sound baths, theater, storytelling, etc.)
     const titleLower = event.title.toLowerCase();
     if (
       titleLower.includes("class") ||
       titleLower.includes("workshop") ||
       titleLower.includes("workspace") ||
-      titleLower.includes("volunteer")
+      titleLower.includes("volunteer") ||
+      titleLower.includes("sound bath") ||
+      titleLower.includes("sound healing") ||
+      titleLower.includes("story slam") ||
+      titleLower.includes("storySLAM".toLowerCase()) ||
+      titleLower.includes("improv") ||
+      titleLower.includes("spoken word") ||
+      titleLower.includes("live painter")
     ) {
       continue;
     }
 
-    // Clean up title — remove venue suffix and date prefix
+    // Clean up title — remove venue suffix, date prefix, and show-time qualifiers
     let title = event.title
       .replace(
         /\s*@\s*(FREMONT ABBEY|BALLARD HOMESTEAD|ST\.?\s*MARK'?S?|BLOEDEL HALL|WASHINGTON HALL|THE PALINDROME).*/i,
@@ -166,14 +173,16 @@ export async function scrapeAbbeyArts(): Promise<RawEvent[]> {
       )
       .replace(/\s*-\s*Abbey Arts Presents.*/i, "")
       .replace(/^\d+\/\d+\s*/, "") // Remove date prefix like "3/27 "
+      .replace(/\s*\(\d{1,2}:\d{2}[ap]m?\s*show\)/i, "") // Remove "(9:15p show)" etc.
       .trim();
 
-    // Extract artist names
+    // Extract artist names — take first segment before a dash, split on commas/ampersands/plus,
+    // then strip any remaining trailing parentheticals like "(acoustic)" or "(WA/Mexico City)"
     const artistNames = title
       .split(/\s*[-–—]\s*/)[0]
       .split(/\s*[,&+]\s*/)
-      .map((a) => a.trim())
-      .filter((a) => a.length > 0);
+      .map((a) => a.replace(/\s*\([^)]*\)\s*$/, "").trim()) // strip trailing parentheticals
+      .filter((a) => a.length > 2); // drop fragments like "w/" or empty strings
 
     const ticketUrl = event.urls?.url?.split("?")[0] || undefined;
 
