@@ -33,9 +33,19 @@ async function getArtistGenre(
   url.searchParams.set("autocorrect", "1");
 
   const response = await fetch(url.toString());
-  if (!response.ok) return null;
+  if (!response.ok) {
+    console.warn(`Last.fm: HTTP ${response.status} for "${artistName}"`);
+    return null;
+  }
 
   const data = await response.json();
+
+  // Last.fm returns HTTP 200 even for API errors — check the error field
+  if (data?.error) {
+    console.warn(`Last.fm API error ${data.error} for "${artistName}": ${data.message}`);
+    return null;
+  }
+
   const tags: { name: string; count: number }[] = data?.toptags?.tag || [];
 
   // Take the first tag with meaningful count that isn't a meta-tag
@@ -83,8 +93,8 @@ export async function enrichArtistGenres(
         `;
         enriched++;
       }
-    } catch {
-      // Silently skip failures — enrichment is best-effort
+    } catch (err) {
+      console.warn(`Last.fm: error for "${artist.name as string}":`, err);
     }
 
     // Respect Last.fm rate limit
