@@ -47,13 +47,21 @@ export default async function HomePage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {Array.from(grouped.entries()).map(([date, dateEvents]) => (
               <section key={date}>
-                <h2 className="text-lg font-semibold text-gray-700 mb-3 sticky top-0 bg-gray-50 py-2">
-                  {formatDate(date)}
-                </h2>
-                <div className="space-y-3">
+                <div className="sticky top-0 z-10 bg-gray-50 pt-2 pb-3">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      {formatDate(date)}
+                    </h2>
+                    <span className="text-xs font-medium text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">
+                      {dateEvents!.length} {dateEvents!.length === 1 ? "show" : "shows"}
+                    </span>
+                  </div>
+                  <div className="mt-2 border-b border-gray-200" />
+                </div>
+                <div className="space-y-3 mt-1">
                   {dateEvents!.map((event) => (
                     <EventCard key={event.id} event={event} />
                   ))}
