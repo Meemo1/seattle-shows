@@ -12,6 +12,8 @@ export default async function VenuesPage() {
     venues = null;
   }
 
+  const activeVenues = venues?.filter((v) => v.event_count > 0) ?? null;
+
   return (
     <>
       <Header />
@@ -22,21 +24,28 @@ export default async function VenuesPage() {
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            {venues.map((venue) => (
+            {activeVenues!.map((venue) => (
               <Link
                 key={venue.id}
                 href={`/venues/${venue.slug}`}
                 className="show-card block"
                 style={{ textDecoration: "none" }}
               >
-                <span className="show-venue">{venue.name}</span>
-                {venue.neighborhood && (
-                  <span className="show-neighborhood block mt-0.5">{venue.neighborhood}</span>
-                )}
-                {venue.vibe && (
-                  <span className="show-genre block mt-1">{venue.vibe}</span>
-                )}
-                <span className="show-price block mt-2" style={{ fontSize: "12px" }}>
+                <span className="show-name" style={{ fontSize: "20px" }}>
+                  {venue.name}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                  {venue.neighborhood && (
+                    <span className="show-neighborhood">{venue.neighborhood}</span>
+                  )}
+                  {venue.neighborhood && venue.vibe && (
+                    <span className="show-dot">·</span>
+                  )}
+                  {venue.vibe && (
+                    <span className="show-genre">{venue.vibe}</span>
+                  )}
+                </div>
+                <span className="dateline-count" style={{ marginTop: "8px", display: "block" }}>
                   {venue.event_count} upcoming {venue.event_count === 1 ? "show" : "shows"}
                 </span>
               </Link>
