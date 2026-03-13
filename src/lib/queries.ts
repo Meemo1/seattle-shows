@@ -258,7 +258,10 @@ export async function deduplicateCrossSource(): Promise<number> {
     WHERE id IN (
       SELECT e.id FROM events e
       JOIN event_sources es ON es.event_id = e.id AND es.source_name = 'ticketmaster'
-      JOIN venues v ON e.venue_id = v.id AND v.slug IN ('tractor-tavern', 'sunset-tavern', 'conor-byrne')
+      JOIN venues v ON e.venue_id = v.id AND v.slug IN (
+        'tractor-tavern', 'sunset-tavern', 'conor-byrne',
+        'fremont-abbey', 'ballard-homestead', 'st-marks-cathedral', 'washington-hall'
+      )
       WHERE EXISTS (
         SELECT 1 FROM events e2
         JOIN event_sources es2 ON es2.event_id = e2.id AND es2.source_name != 'ticketmaster'
