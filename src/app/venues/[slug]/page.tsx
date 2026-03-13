@@ -90,8 +90,10 @@ export default async function VenueDetailPage({
           <div className="space-y-8">
             {Array.from(grouped.entries()).map(([date, dateEvents]) => (
               <section key={date}>
-                <div className="dateline" style={{ marginBottom: "0.6rem" }}>
-                  <span className="dateline-text">{formatDate(date)}</span>
+                <div className="dateline-header">
+                  <div className="dateline">
+                    <span className="dateline-text">{formatDate(date)}</span>
+                  </div>
                 </div>
                 <div className="shows-grid">
                   {dateEvents!.map((event) => (

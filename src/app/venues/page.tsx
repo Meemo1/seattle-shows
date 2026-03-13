@@ -31,21 +31,21 @@ export default async function VenuesPage() {
                 className="show-card block"
                 style={{ textDecoration: "none" }}
               >
-                <span className="show-name" style={{ fontSize: "20px" }}>
+                <span className="show-name" style={{ fontSize: "22px" }}>
                   {venue.name}
                 </span>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                <div className="show-venue-row" style={{ marginTop: "6px" }}>
                   {venue.neighborhood && (
-                    <span className="show-neighborhood">{venue.neighborhood}</span>
+                    <span className="show-venue">{venue.neighborhood}</span>
                   )}
                   {venue.neighborhood && venue.vibe && (
                     <span className="show-dot">·</span>
                   )}
                   {venue.vibe && (
-                    <span className="show-genre">{venue.vibe}</span>
+                    <span className="show-neighborhood">{venue.vibe}</span>
                   )}
                 </div>
-                <span className="dateline-count" style={{ marginTop: "8px", display: "block" }}>
+                <span className="show-time" style={{ marginTop: "10px", display: "block" }}>
                   {venue.event_count} upcoming {venue.event_count === 1 ? "show" : "shows"}
                 </span>
               </Link>
