@@ -253,7 +253,9 @@ export async function ensureVenue(
  * Safe to call on every fetch run — it's a no-op when no such duplicates exist.
  */
 export async function deduplicateCrossSource(): Promise<number> {
-  const result = await sql`
+  // Step 1: same-venue TM duplicates — TM filed an event for a venue that has its
+  // own scraper, and a non-TM record for that same venue+date already exists.
+  const r1 = await sql`
     DELETE FROM events
     WHERE id IN (
       SELECT e.id FROM events e
@@ -270,7 +272,31 @@ export async function deduplicateCrossSource(): Promise<number> {
     )
     RETURNING id
   `;
-  return result.length;
+
+  // Step 2: cross-venue Abbey Arts duplicates — TM files events under the generic
+  // "abbey-arts" org-venue while our scraper files them under the physical venue
+  // (fremont-abbey, ballard-homestead, washington-hall, st-marks-cathedral).
+  // Delete the TM copy when a scraper copy exists on the same date with the same title.
+  const r2 = await sql`
+    DELETE FROM events
+    WHERE id IN (
+      SELECT e.id FROM events e
+      JOIN event_sources es ON es.event_id = e.id AND es.source_name = 'ticketmaster'
+      JOIN venues v ON e.venue_id = v.id AND v.slug = 'abbey-arts'
+      WHERE EXISTS (
+        SELECT 1 FROM events e2
+        JOIN event_sources es2 ON es2.event_id = e2.id AND es2.source_name != 'ticketmaster'
+        JOIN venues v2 ON e2.venue_id = v2.id AND v2.slug IN (
+          'fremont-abbey', 'ballard-homestead', 'washington-hall', 'st-marks-cathedral'
+        )
+        WHERE e2.date = e.date
+          AND lower(trim(e2.title)) = lower(trim(e.title))
+      )
+    )
+    RETURNING id
+  `;
+
+  return r1.length + r2.length;
 }
 
 /**

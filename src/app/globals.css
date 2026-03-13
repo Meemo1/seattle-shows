@@ -147,11 +147,17 @@ body::after {
 }
 
 /* ── Dateline ────────────────────────────────────────── */
+.dateline-header {
+  background: var(--color-paper);
+  padding: 1.1rem 0.25rem 0.55rem;
+  border-bottom: 1px solid rgba(45, 74, 30, 0.15);
+  margin-bottom: 0.75rem;
+}
+
 .dateline {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 0.8rem;
 }
 
 .dateline-text {

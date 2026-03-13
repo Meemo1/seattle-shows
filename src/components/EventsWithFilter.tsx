@@ -123,15 +123,7 @@ export default function EventsWithFilter({
         <div className="space-y-6">
           {Array.from(grouped.entries()).map(([date, dateEvents]) => (
             <section key={date}>
-              <div
-                className="sticky top-0 z-10"
-                style={{
-                  background: "rgba(243, 233, 206, 0.88)",
-                  backdropFilter: "blur(4px)",
-                  paddingTop: "1rem",
-                  paddingBottom: "0.6rem",
-                }}
-              >
+              <div className="sticky top-0 z-10 dateline-header">
                 <div className="dateline">
                   <span className="dateline-text">{formatDate(date)}</span>
                   <span className="dateline-count">
